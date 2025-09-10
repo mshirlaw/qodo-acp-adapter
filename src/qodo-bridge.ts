@@ -19,6 +19,7 @@ export class QodoCommandBridge {
       threadId: sessionId,
       buffer: '',
       isActive: false,
+      process: undefined,
     };
 
     this.sessions.set(sessionId, session);
@@ -58,6 +59,9 @@ export class QodoCommandBridge {
           cwd: process.cwd(), // Use current working directory
         });
 
+        session.process = qodoProcess;
+        session.isActive = true;
+
         let responseBuffer = '';
         let errorBuffer = '';
         let hasResponded = false;
@@ -84,6 +88,9 @@ export class QodoCommandBridge {
         });
 
         qodoProcess.on('exit', (code) => {
+          session.isActive = false;
+          session.process = undefined;
+
           if (this.debug) {
             console.error(`[qodo-bridge] Process exited with code ${code}`);
             console.error(`[qodo-bridge] Full response: ${responseBuffer}`);
