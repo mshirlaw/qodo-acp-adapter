@@ -1,3 +1,5 @@
+import { ChildProcess } from 'child_process';
+
 // ACP Protocol Types
 // Based on https://agentclientprotocol.com
 
@@ -126,7 +128,7 @@ export interface ToolResult {
 export interface QodoSession {
   id: string;
   threadId: string;
-  process?: any; // Child process
+  process?: ChildProcess;
   buffer: string;
   isActive: boolean;
 }
