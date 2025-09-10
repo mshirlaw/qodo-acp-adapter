@@ -9,6 +9,23 @@ import {
 } from './types';
 import { QodoCommandBridge } from './qodo-bridge';
 
+const ProtocolMethods = {
+  INITIALIZE: 'initialize',
+  AGENT_INITIALIZE: 'agent/initialize',
+  SESSION_NEW: 'session/new',
+  CREATE_THREAD: 'createThread',
+  AGENT_CREATE_THREAD: 'agent/createThread',
+  SESSION_PROMPT: 'session/prompt',
+  PROMPT: 'prompt',
+  SEND_MESSAGE: 'sendMessage',
+  AGENT_SEND_MESSAGE: 'agent/sendMessage',
+  CANCEL: 'cancel',
+  STOP_GENERATION: 'stopGeneration',
+  AGENT_STOP_GENERATION: 'agent/stopGeneration',
+  LIST_THREADS: 'listThreads',
+  AGENT_LIST_THREADS: 'agent/listThreads',
+};
+
 export class ACPServer {
   private rl: readline.Interface;
   private bridge: QodoCommandBridge;
@@ -52,32 +69,32 @@ export class ACPServer {
       let response: ACPResponse | null = null;
 
       switch (message.method) {
-        case 'initialize':
-        case 'agent/initialize':
+        case ProtocolMethods.INITIALIZE:
+        case ProtocolMethods.AGENT_INITIALIZE:
           response = await this.handleInitialize(message);
           break;
 
-        case 'session/new': // Zed uses this instead of createThread
-        case 'createThread':
-        case 'agent/createThread':
+        case ProtocolMethods.SESSION_NEW: // Zed uses this instead of createThread
+        case ProtocolMethods.CREATE_THREAD:
+        case ProtocolMethods.AGENT_CREATE_THREAD:
           response = await this.handleCreateThread(message);
           break;
 
-        case 'session/prompt': // Zed uses this for sending messages
-        case 'prompt': // Alternative format
-        case 'sendMessage':
-        case 'agent/sendMessage':
+        case ProtocolMethods.SESSION_PROMPT: // Zed uses this for sending messages
+        case ProtocolMethods.PROMPT: // Alternative format
+        case ProtocolMethods.SEND_MESSAGE:
+        case ProtocolMethods.AGENT_SEND_MESSAGE:
           response = await this.handleSendMessage(message);
           break;
 
-        case 'cancel': // Zed might use this instead of stopGeneration
-        case 'stopGeneration':
-        case 'agent/stopGeneration':
+        case ProtocolMethods.CANCEL: // Zed might use this instead of stopGeneration
+        case ProtocolMethods.STOP_GENERATION:
+        case ProtocolMethods.AGENT_STOP_GENERATION:
           response = await this.handleStopGeneration(message);
           break;
 
-        case 'listThreads':
-        case 'agent/listThreads':
+        case ProtocolMethods.LIST_THREADS:
+        case ProtocolMethods.AGENT_LIST_THREADS:
           response = await this.handleListThreads(message);
           break;
 
@@ -153,7 +170,7 @@ export class ACPServer {
     const sessionId = await this.bridge.createSession(params?.metadata);
 
     const result =
-      request.method === 'session/new'
+      request.method === ProtocolMethods.SESSION_NEW
         ? { sessionId, metadata: params?.metadata }
         : { threadId: sessionId, metadata: params?.metadata };
 
@@ -179,7 +196,10 @@ export class ACPServer {
     let params: any;
     let sessionId: string;
 
-    if (request.method === 'session/prompt' || request.method === 'prompt') {
+    if (
+      request.method === ProtocolMethods.SESSION_PROMPT ||
+      request.method === ProtocolMethods.PROMPT
+    ) {
       params = request.params as any;
       sessionId = params.sessionId;
     } else {
@@ -189,7 +209,10 @@ export class ACPServer {
 
     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    if (request.method === 'session/prompt' || request.method === 'prompt') {
+    if (
+      request.method === ProtocolMethods.SESSION_PROMPT ||
+      request.method === ProtocolMethods.PROMPT
+    ) {
       return this.processPromptSync(params, sessionId, request);
     } else {
       const initialResult = {
@@ -220,7 +243,7 @@ export class ACPServer {
     try {
       let textContent: string;
 
-      if (method === 'session/prompt' || method === 'prompt') {
+      if (method === ProtocolMethods.SESSION_PROMPT || method === ProtocolMethods.PROMPT) {
         textContent =
           params.prompt
             ?.map((p: any) => {
@@ -240,7 +263,7 @@ export class ACPServer {
       // Set up progress callback
       const onProgress = (content: string) => {
         const notificationMethod =
-          method === 'session/prompt' || method === 'prompt'
+          method === ProtocolMethods.SESSION_PROMPT || method === ProtocolMethods.PROMPT
             ? 'session/update' // Zed uses session/update for prompt methods
             : 'agent/progress';
 
@@ -269,7 +292,9 @@ export class ACPServer {
       const completionNotification: ACPNotification = {
         jsonrpc: '2.0',
         method:
-          method === 'session/prompt' || method === 'prompt' ? 'session/update' : 'agent/progress',
+          method === ProtocolMethods.SESSION_PROMPT || method === ProtocolMethods.PROMPT
+            ? 'session/update'
+            : 'agent/progress',
         params: {
           sessionId: sessionId,
           threadId: sessionId,
@@ -286,7 +311,9 @@ export class ACPServer {
       const errorNotification: ACPNotification = {
         jsonrpc: '2.0',
         method:
-          method === 'session/prompt' || method === 'prompt' ? 'session/update' : 'agent/progress',
+          method === ProtocolMethods.SESSION_PROMPT || method === ProtocolMethods.PROMPT
+            ? 'session/update'
+            : 'agent/progress',
         params: {
           sessionId: sessionId,
           threadId: sessionId,
