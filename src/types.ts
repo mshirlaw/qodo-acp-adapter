@@ -10,6 +10,10 @@ export interface ACPRequest {
   params?: any;
 }
 
+export interface ACPTypedRequest<T> extends Omit<ACPRequest, 'params'> {
+  params: T;
+}
+
 export interface ACPResponse {
   jsonrpc: '2.0';
   id: string | number;
@@ -99,6 +103,11 @@ export interface SendMessageResult {
   role: 'assistant';
   content: MessageContent[];
   metadata?: Record<string, any>;
+}
+
+export interface PromptParams {
+  sessionId: string;
+  prompt?: (string | TextContent)[];
 }
 
 // Progress notifications
