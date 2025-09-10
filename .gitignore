@@ -1,0 +1,4 @@
+.qodo
+dist/
+node_modules/
+.vscode

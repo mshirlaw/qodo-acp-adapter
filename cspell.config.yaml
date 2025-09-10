@@ -1,0 +1,29 @@
+version: "0.2"
+language: en
+
+overrides:
+  - filename: "**/*.ts"
+    languageId: typescript
+
+useGitignore: true
+ignorePaths:
+  - node_modules
+  - dist
+  - .git
+  - .vscode
+  - .qodo
+  - package-lock.json
+  - tsconfig.json
+  - .prettierrc.json
+  - .prettierignore
+  - eslint.config.mjs
+  - README.md
+  - LICENSE
+  - TODO.md
+
+words:
+  - qodo
+
+flagWords:
+  - teh
+  - adn
