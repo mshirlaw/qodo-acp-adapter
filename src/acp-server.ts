@@ -6,6 +6,9 @@ import {
   InitializeResult,
   CreateThreadParams,
   SendMessageParams,
+  ACPTypedRequest,
+  InitializeParams,
+  PromptParams,
 } from './types';
 import { QodoCommandBridge } from './qodo-bridge';
 
@@ -71,20 +74,23 @@ export class ACPServer {
       switch (message.method) {
         case ProtocolMethods.INITIALIZE:
         case ProtocolMethods.AGENT_INITIALIZE:
-          response = await this.handleInitialize(message);
+          response = await this.handleInitialize(message as ACPTypedRequest<InitializeParams>);
           break;
 
         case ProtocolMethods.SESSION_NEW: // Zed uses this instead of createThread
         case ProtocolMethods.CREATE_THREAD:
         case ProtocolMethods.AGENT_CREATE_THREAD:
-          response = await this.handleCreateThread(message);
+          response = await this.handleCreateThread(message as ACPTypedRequest<CreateThreadParams>);
           break;
 
         case ProtocolMethods.SESSION_PROMPT: // Zed uses this for sending messages
         case ProtocolMethods.PROMPT: // Alternative format
+          response = await this.handlePrompt(message as ACPTypedRequest<PromptParams>);
+          break;
+
         case ProtocolMethods.SEND_MESSAGE:
         case ProtocolMethods.AGENT_SEND_MESSAGE:
-          response = await this.handleSendMessage(message);
+          response = await this.handleSendMessage(message as ACPTypedRequest<SendMessageParams>);
           break;
 
         case ProtocolMethods.CANCEL: // Zed might use this instead of stopGeneration
@@ -131,7 +137,7 @@ export class ACPServer {
     }
   }
 
-  private async handleInitialize(request: ACPRequest): Promise<ACPResponse> {
+  private async handleInitialize(request: ACPTypedRequest<InitializeParams>): Promise<ACPResponse> {
     const result: InitializeResult = {
       protocolVersion: 1 as any, // Zed expects a number, not a string
       capabilities: {
@@ -154,7 +160,9 @@ export class ACPServer {
     };
   }
 
-  private async handleCreateThread(request: ACPRequest): Promise<ACPResponse> {
+  private async handleCreateThread(
+    request: ACPTypedRequest<CreateThreadParams>
+  ): Promise<ACPResponse> {
     if (!this.initialized) {
       return {
         jsonrpc: '2.0',
@@ -166,13 +174,12 @@ export class ACPServer {
       };
     }
 
-    const params = request.params as CreateThreadParams;
-    const sessionId = await this.bridge.createSession(params?.metadata);
+    const sessionId = await this.bridge.createSession(request.params?.metadata);
 
     const result =
       request.method === ProtocolMethods.SESSION_NEW
-        ? { sessionId, metadata: params?.metadata }
-        : { threadId: sessionId, metadata: params?.metadata };
+        ? { sessionId, metadata: request.params?.metadata }
+        : { threadId: sessionId, metadata: request.params?.metadata };
 
     return {
       jsonrpc: '2.0',
@@ -181,7 +188,23 @@ export class ACPServer {
     };
   }
 
-  private async handleSendMessage(request: ACPRequest): Promise<ACPResponse> {
+  private async handlePrompt(request: ACPTypedRequest<PromptParams>): Promise<ACPResponse> {
+    if (!this.initialized) {
+      return {
+        jsonrpc: '2.0',
+        id: request.id,
+        error: {
+          code: -32002,
+          message: 'Server not initialized',
+        },
+      };
+    }
+    return this.processPromptSync(request.params, request.params.sessionId, request);
+  }
+
+  private async handleSendMessage(
+    request: ACPTypedRequest<SendMessageParams>
+  ): Promise<ACPResponse> {
     if (!this.initialized) {
       return {
         jsonrpc: '2.0',
@@ -193,45 +216,25 @@ export class ACPServer {
       };
     }
 
-    let params: any;
-    let sessionId: string;
-
-    if (
-      request.method === ProtocolMethods.SESSION_PROMPT ||
-      request.method === ProtocolMethods.PROMPT
-    ) {
-      params = request.params as any;
-      sessionId = params.sessionId;
-    } else {
-      params = request.params as SendMessageParams;
-      sessionId = params.threadId;
-    }
-
+    const { threadId } = request.params;
     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    if (
-      request.method === ProtocolMethods.SESSION_PROMPT ||
-      request.method === ProtocolMethods.PROMPT
-    ) {
-      return this.processPromptSync(params, sessionId, request);
-    } else {
-      const initialResult = {
-        messageId,
-        role: 'assistant',
-        content: [],
-        metadata: {},
-      };
+    const initialResult = {
+      messageId,
+      role: 'assistant',
+      content: [],
+      metadata: {},
+    };
 
-      this.sendResponse({
-        jsonrpc: '2.0',
-        id: request.id,
-        result: initialResult,
-      });
+    this.sendResponse({
+      jsonrpc: '2.0',
+      id: request.id,
+      result: initialResult,
+    });
 
-      void this.processMessageAsync(params, messageId, sessionId, request.method);
+    void this.processMessageAsync(request.params, messageId, threadId, request.method);
 
-      return null!;
-    }
+    return null!;
   }
 
   private async processMessageAsync(
