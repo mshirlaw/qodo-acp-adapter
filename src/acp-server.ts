@@ -11,6 +11,12 @@ import {
   PromptParams,
 } from './types';
 import { QodoCommandBridge } from './qodo-bridge';
+import {
+  createServerNotInitializedError,
+  createMethodNotFoundError,
+  createInternalError,
+  createStopGenerationError,
+} from './utils';
 
 const ProtocolMethods = {
   INITIALIZE: 'initialize',
@@ -105,14 +111,7 @@ export class ACPServer {
           break;
 
         default:
-          response = {
-            jsonrpc: '2.0',
-            id: message.id,
-            error: {
-              code: -32601,
-              message: `Method not found: ${message.method}`,
-            },
-          };
+          response = createMethodNotFoundError(message.id, message.method);
       }
 
       if (response) {
@@ -122,15 +121,7 @@ export class ACPServer {
       console.error('[acp-server] Error handling message:', error);
       try {
         const errorMessage = JSON.parse(line) as ACPRequest;
-        this.sendResponse({
-          jsonrpc: '2.0',
-          id: errorMessage.id,
-          error: {
-            code: -32603,
-            message: 'Internal error',
-            data: error instanceof Error ? error.message : String(error),
-          },
-        });
+        this.sendResponse(createInternalError(errorMessage.id, error));
       } catch {
         // Can't send error response
       }
@@ -164,14 +155,7 @@ export class ACPServer {
     request: ACPTypedRequest<CreateThreadParams>
   ): Promise<ACPResponse> {
     if (!this.initialized) {
-      return {
-        jsonrpc: '2.0',
-        id: request.id,
-        error: {
-          code: -32002,
-          message: 'Server not initialized',
-        },
-      };
+      return createServerNotInitializedError(request.id);
     }
 
     const sessionId = await this.bridge.createSession(request.params?.metadata);
@@ -190,14 +174,7 @@ export class ACPServer {
 
   private async handlePrompt(request: ACPTypedRequest<PromptParams>): Promise<ACPResponse> {
     if (!this.initialized) {
-      return {
-        jsonrpc: '2.0',
-        id: request.id,
-        error: {
-          code: -32002,
-          message: 'Server not initialized',
-        },
-      };
+      return createServerNotInitializedError(request.id);
     }
     return this.processPromptSync(request.params, request.params.sessionId, request);
   }
@@ -206,14 +183,7 @@ export class ACPServer {
     request: ACPTypedRequest<SendMessageParams>
   ): Promise<ACPResponse> {
     if (!this.initialized) {
-      return {
-        jsonrpc: '2.0',
-        id: request.id,
-        error: {
-          code: -32002,
-          message: 'Server not initialized',
-        },
-      };
+      return createServerNotInitializedError(request.id);
     }
 
     const { threadId } = request.params;
@@ -342,15 +312,7 @@ export class ACPServer {
         result: { success: true },
       };
     } catch (error) {
-      return {
-        jsonrpc: '2.0',
-        id: request.id,
-        error: {
-          code: -32603,
-          message: 'Failed to stop generation',
-          data: error instanceof Error ? error.message : String(error),
-        },
-      };
+      return createStopGenerationError(request.id, error);
     }
   }
 
