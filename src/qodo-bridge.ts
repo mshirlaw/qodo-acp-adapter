@@ -49,16 +49,20 @@ export class QodoCommandBridge {
           console.error(`[qodo-bridge] Message: ${message}`);
         }
 
-        const qodoProcess = spawn(this.qodoPath, ['--ci', '-y', message], {
-          stdio: ['pipe', 'pipe', 'pipe'],
-          env: {
-            ...process.env,
-            CI: 'true',
-            NO_COLOR: '1',
-            TERM: 'dumb',
-          },
-          cwd: process.cwd(), // Use current working directory
-        });
+        const qodoProcess = spawn(
+          this.qodoPath,
+          ['--ci', '--permissions=rw', '--tools=filesystem', message],
+          {
+            stdio: ['pipe', 'pipe', 'pipe'],
+            env: {
+              ...process.env,
+              CI: 'true',
+              NO_COLOR: '1',
+              TERM: 'dumb',
+            },
+            cwd: process.cwd(), // Use current working directory
+          }
+        );
 
         session.process = qodoProcess;
         session.isActive = true;
