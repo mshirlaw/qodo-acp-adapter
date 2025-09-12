@@ -1,7 +1,7 @@
 # Qodo ACP Adapter
 
-[![Test](https://github.com/yourusername/qodo-acp-adapter/actions/workflows/test.yml/badge.svg)](https://github.com/yourusername/qodo-acp-adapter/actions/workflows/test.yml)
-[![CI](https://github.com/yourusername/qodo-acp-adapter/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/qodo-acp-adapter/actions/workflows/ci.yml)
+[![Test](https://github.com/mshirlaw/qodo-acp-adapter/actions/workflows/test.yml/badge.svg)](https://github.com/mshirlaw/qodo-acp-adapter/actions/workflows/test.yml)
+[![CI](https://github.com/mshirlaw/qodo-acp-adapter/actions/workflows/ci.yml/badge.svg)](https://github.com/mshirlaw/qodo-acp-adapter/actions/workflows/ci.yml)
 
 An experimental ACP (Agent Client Protocol) adapter for Qodo Command, allowing it to work with Zed editor and other ACP-compatible clients.
 
