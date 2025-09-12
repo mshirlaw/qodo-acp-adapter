@@ -11,8 +11,9 @@ export class QodoCommandBridge {
     this.qodoPath = options.qodoPath || 'qodo';
   }
 
-  async createSession(_metadata?: Record<string, any>): Promise<string> {
-    const sessionId = `qodo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  async createSession(metadata?: Record<string, any>): Promise<string> {
+    const sessionId =
+      metadata?.sessionId ?? `qodo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     const session: QodoSession = {
       id: sessionId,
