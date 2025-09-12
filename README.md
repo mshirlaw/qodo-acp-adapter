@@ -1,5 +1,8 @@
 # Qodo ACP Adapter
 
+[![Test](https://github.com/yourusername/qodo-acp-adapter/actions/workflows/test.yml/badge.svg)](https://github.com/yourusername/qodo-acp-adapter/actions/workflows/test.yml)
+[![CI](https://github.com/yourusername/qodo-acp-adapter/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/qodo-acp-adapter/actions/workflows/ci.yml)
+
 An experimental ACP (Agent Client Protocol) adapter for Qodo Command, allowing it to work with Zed editor and other ACP-compatible clients.
 
 ## ⚠️ Experimental Status
@@ -9,6 +12,7 @@ This is a proof-of-concept implementation showing how to create an ACP adapter f
 ## Architecture
 
 This adapter implements the Agent Client Protocol to bridge between:
+
 - **ACP Clients** (like Zed editor) that speak JSON-RPC over stdio
 - **Qodo Command** CLI tool that expects terminal interaction
 
@@ -30,6 +34,7 @@ This adapter implements the Agent Client Protocol to bridge between:
 ### Protocol Translation
 
 The adapter handles the differences between Zed's ACP implementation and the standard protocol:
+
 - `initialize` → Standard initialization
 - `session/new` → Creates a new conversation session (returns `sessionId`)
 - `session/prompt` → Sends a message and waits for completion (returns `stopReason`)
@@ -60,8 +65,8 @@ Add to your Zed `settings.json`:
       "command": "node",
       "args": ["/full/path/to/qodo-acp-adapter/dist/index.js"],
       "env": {
-        "ACP_DEBUG": "true",  // Enable debug logging (optional)
-        "QODO_PATH": "/usr/local/bin/qodo"  // Custom qodo path if needed (optional)
+        "ACP_DEBUG": "true", // Enable debug logging (optional)
+        "QODO_PATH": "/usr/local/bin/qodo" // Custom qodo path if needed (optional)
       }
     }
   }
@@ -120,6 +125,7 @@ ACP_DEBUG=true node dist/index.js
 ```
 
 Debug logs are written to stderr and include:
+
 - Incoming ACP messages
 - Qodo process management
 - Message routing
@@ -130,6 +136,7 @@ Debug logs are written to stderr and include:
 ### Short-term Improvements (Workarounds)
 
 1. **Context Injection**: Prepend a summary of previous messages to each new prompt to simulate conversation memory:
+
    ```javascript
    const context = previousMessages.join('\n');
    const fullPrompt = `Previous context:\n${context}\n\nCurrent question: ${message}`;
@@ -152,6 +159,7 @@ Debug logs are written to stderr and include:
    - Handling tool calls and resources properly
 
 2. **Qodo API Mode**: If Qodo provided a programmatic API or SDK (similar to Claude's SDK), the adapter could use that instead of the CLI:
+
    ```javascript
    import { QodoClient } from '@qodo/sdk';
    const client = new QodoClient({ apiKey: process.env.QODO_API_KEY });
@@ -174,7 +182,7 @@ If you're from the Qodo team or want to request these features:
    - Need for programmatic access without terminal UI
    - Session persistence across multiple prompts
    - Streaming response support
-3. **Reference Implementations**: 
+3. **Reference Implementations**:
    - [Gemini CLI's ACP implementation](https://github.com/google-gemini/gemini-cli)
    - [Claude Code ACP adapter](https://github.com/zed-industries/claude-code-acp)
 
