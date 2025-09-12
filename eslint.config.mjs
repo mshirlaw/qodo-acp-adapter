@@ -8,10 +8,10 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   prettierConfig,
   {
-    files: ['**/*.ts'],
+    files: ['src/**/*.ts'],
     languageOptions: {
       parserOptions: {
-        project: true,
+        project: './tsconfig.json',
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -62,6 +62,37 @@ export default tseslint.config(
       'max-lines-per-function': 'off',
       
       // Prettier integration
+      'prettier/prettier': ['warn', {
+        semi: true,
+        trailingComma: 'es5',
+        singleQuote: true,
+        printWidth: 100,
+        tabWidth: 2,
+        useTabs: false,
+        bracketSpacing: true,
+        arrowParens: 'always',
+        endOfLine: 'lf',
+      }],
+    },
+  },
+  {
+    files: ['tests/**/*.ts', 'vitest.config.ts'],
+    languageOptions: {
+      parserOptions: {
+        project: './tsconfig.test.json',
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    plugins: {
+      prettier: prettierPlugin,
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
       'prettier/prettier': ['warn', {
         semi: true,
         trailingComma: 'es5',
