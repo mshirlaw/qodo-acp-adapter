@@ -31,7 +31,7 @@ This adapter implements the Agent Client Protocol to bridge between:
 3. **Message Handling**: User messages are sent via `session/prompt` with text content extraction
 4. **Qodo Integration**: The bridge spawns `qodo --ci --permissions=rw --tools=filesystem <prompt>` for each message
 5. **Progress Updates**: Qodo's stdout is streamed back as `session/update` notifications in real-time
-6. **Error Handling**: Both stdout and stderr are captured, with debug logging available via `ACP_DEBUG`
+6. **Error Handling**: Both stdout and stderr are captured for proper error reporting
 
 ### Protocol Translation
 
@@ -68,7 +68,6 @@ Add to your Zed `settings.json`:
       "command": "node",
       "args": ["/full/path/to/qodo-acp-adapter/dist/index.js"],
       "env": {
-        "ACP_DEBUG": "true", // Enable debug logging (optional)
         "QODO_PATH": "/usr/local/bin/qodo" // Custom qodo path if needed (optional)
       }
     }
@@ -146,15 +145,9 @@ npm run spell
 npm run spell:fix
 ```
 
-## Debugging
+## Error Handling
 
-Enable debug logging by setting the `ACP_DEBUG` environment variable:
-
-```bash
-ACP_DEBUG=true node dist/index.js
-```
-
-Debug logs are written to stderr and include:
+Error logs are written to stderr and include:
 
 - Incoming ACP messages
 - Qodo process management

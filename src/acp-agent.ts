@@ -31,7 +31,7 @@ export class ACPAgent implements Agent {
 
   constructor(client: AgentSideConnection) {
     this.client = client;
-    this.bridge = new QodoCommandBridge({ debug: true });
+    this.bridge = new QodoCommandBridge();
     this.sessions = {};
   }
 
