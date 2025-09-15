@@ -9,10 +9,6 @@ An experimental ACP (Agent Client Protocol) adapter for Qodo Command, allowing i
 
 This is a proof-of-concept implementation showing how to create an ACP adapter for a CLI tool that wasn't designed for programmatic interaction. While functional, it has significant limitations due to the mismatch between Qodo Command's terminal-based design and ACP's programmatic requirements.
 
-## Example
-
-## Example
-
 Below is a screenshot showing the Qodo ACP Adapter in action within the Zed editor.
 
 <img src="img/489346040-5099ee1e-bcfe-4f7f-91d8-cf87763bb202.jpg" alt="Qodo ACP Adapter Example" width="400" />
