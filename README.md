@@ -21,8 +21,9 @@ This adapter implements the Agent Client Protocol to bridge between:
 1. **`index.ts`** - Entry point that sets up the server and handles process lifecycle
 2. **`acp-agent.ts`** - Implements the ACP protocol, handling JSON-RPC messages with UUID v7 session IDs
 3. **`qodo-bridge.ts`** - Manages Qodo Command subprocess with hardcoded permissions (`--permissions=rw --tools=filesystem`)
-4. **`types.ts`** - TypeScript type definitions for ACP protocol and session management
-5. **`utils.ts`** - Utility functions for stream conversion between Node.js and Web streams
+4. **`tool-parser.ts`** - Filters out verbose tool call output to keep messages clean (see Tool Output Filtering below)
+5. **`types.ts`** - TypeScript type definitions for ACP protocol and session management
+6. **`utils.ts`** - Utility functions for stream conversion between Node.js and Web streams
 
 ## How It Works
 
@@ -76,6 +77,64 @@ Add to your Zed `settings.json`:
 ```
 
 **Note**: Make sure to use the full absolute path to the adapter's `dist/index.js` file.
+
+## Tool Output Filtering
+
+Qodo Command outputs verbose tool call information that clutters the conversation in ACP clients. The adapter includes a `QodoToolParser` that filters this output to keep messages clean.
+
+### What It Does
+
+The parser identifies Qodo's tool call patterns and:
+
+1. **Detects tool calls** by looking for known tool names after `┌─` markers
+2. **Shows just the tool name** with a status icon (✅ for success, ❌ for error, ⏳ for pending)
+3. **Filters out all parameters and results** that appear in `├──` and `└──` lines
+4. **Preserves regular text** between tool calls
+
+### Example
+
+**Before (Raw Qodo Output):**
+
+```
+┌─ read_files
+├── paths: package.json,README.md
+└─── ✓ ✓ Success: [{"path": "package.json", "content": "..."}]
+```
+
+**After (Filtered Output):**
+
+```
+✅ Tool call: read_files
+```
+
+### Supported Tools
+
+The parser currently recognizes these Qodo tools:
+
+- `read_files`
+- `list_files`
+- `list_files_in_directories`
+- `directory_tree`
+- `write_file`
+- `create_file`
+- `delete_file`
+- `move_file`
+- `get_current_directory`
+- `search_files`
+- `replace_in_file`
+
+To add support for new tools, simply add the tool name to the `KNOWN_TOOLS` array in `tool-parser.ts`.
+
+### Limitations
+
+The tool parser is a simple filter that operates on streaming text chunks. It cannot:
+
+- Maintain state between chunks (each chunk is processed independently)
+- Parse complex multi-line tool outputs that span multiple chunks
+- Distinguish between actual tool calls and similar-looking text patterns
+- Provide detailed information about tool parameters or results
+
+This is a workaround for the verbose output from Qodo's CLI mode. A proper solution would require Qodo to support a structured output format or ACP natively.
 
 ## Current Limitations
 
