@@ -3,11 +3,9 @@ import { QodoSession } from './types';
 
 export class QodoCommandBridge {
   private sessions: Map<string, QodoSession> = new Map();
-  private debug: boolean;
   private qodoPath: string;
 
-  constructor(options: { debug?: boolean; qodoPath?: string } = {}) {
-    this.debug = options.debug || false;
+  constructor(options: { qodoPath?: string } = {}) {
     this.qodoPath = options.qodoPath || 'qodo';
   }
 
@@ -25,10 +23,6 @@ export class QodoCommandBridge {
 
     this.sessions.set(sessionId, session);
 
-    if (this.debug) {
-      console.error(`[qodo-bridge] Created session: ${sessionId}`);
-    }
-
     return sessionId;
   }
 
@@ -44,11 +38,6 @@ export class QodoCommandBridge {
 
     return new Promise((resolve, reject) => {
       try {
-        if (this.debug) {
-          console.error(`[qodo-bridge] Running qodo command for session ${threadId}`);
-          console.error(`[qodo-bridge] Message: ${message}`);
-        }
-
         const qodoProcess = spawn(
           this.qodoPath,
           ['--ci', '--permissions=rw', '--tools=filesystem', message],
@@ -67,17 +56,11 @@ export class QodoCommandBridge {
         session.process = qodoProcess;
         session.isActive = true;
 
-        let responseBuffer = '';
         let errorBuffer = '';
         let hasResponded = false;
 
         qodoProcess.stdout.on('data', (chunk) => {
           const text = chunk.toString();
-          responseBuffer += text;
-
-          if (this.debug) {
-            console.error(`[qodo-bridge] stdout chunk: ${text}`);
-          }
 
           onProgress(text);
           hasResponded = true;
@@ -86,21 +69,11 @@ export class QodoCommandBridge {
         qodoProcess.stderr.on('data', (chunk) => {
           const text = chunk.toString();
           errorBuffer += text;
-
-          if (this.debug) {
-            console.error(`[qodo-bridge] stderr: ${text}`);
-          }
         });
 
         qodoProcess.on('exit', (code) => {
           session.isActive = false;
           session.process = undefined;
-
-          if (this.debug) {
-            console.error(`[qodo-bridge] Process exited with code ${code}`);
-            console.error(`[qodo-bridge] Full response: ${responseBuffer}`);
-            console.error(`[qodo-bridge] Full error: ${errorBuffer}`);
-          }
 
           if (code === 0 || hasResponded) {
             resolve();
@@ -130,10 +103,6 @@ export class QodoCommandBridge {
       return;
     }
 
-    if (this.debug) {
-      console.error(`[qodo-bridge] Stopping generation for session ${threadId}`);
-    }
-
     if (session.process.stdin) {
       session.process.stdin.write('\x03');
     }
@@ -151,9 +120,6 @@ export class QodoCommandBridge {
   }
 
   async cleanup(): Promise<void> {
-    if (this.debug) {
-      console.error('[qodo-bridge] Cleaning up all sessions...');
-    }
     for (const session of this.sessions.values()) {
       if (session.process && session.isActive) {
         session.process.kill('SIGTERM');

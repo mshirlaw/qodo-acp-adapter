@@ -41,7 +41,7 @@ describe('ACPAgent', () => {
       expect(agent.client).toBe(mockClient);
       expect(agent.bridge).toBe(mockBridge);
       expect(agent.sessions).toEqual({});
-      expect(QodoCommandBridge).toHaveBeenCalledWith({ debug: true });
+      expect(QodoCommandBridge).toHaveBeenCalledWith();
     });
   });
 
