@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
 import { QodoSession } from './types';
-import { QodoToolParser, formatToolCall, hasToolCallPattern } from './tool-parser';
+import { QodoToolParser, formatToolCall } from './tool-parser';
 
 export class QodoCommandBridge {
   private sessions: Map<string, QodoSession> = new Map();
