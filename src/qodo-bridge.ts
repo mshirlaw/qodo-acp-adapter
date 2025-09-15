@@ -1,12 +1,15 @@
 import { spawn } from 'child_process';
 import { QodoSession } from './types';
+import { QodoToolParser, formatToolCall, hasToolCallPattern } from './tool-parser';
 
 export class QodoCommandBridge {
   private sessions: Map<string, QodoSession> = new Map();
   private qodoPath: string;
+  private toolParser: QodoToolParser;
 
   constructor(options: { qodoPath?: string } = {}) {
     this.qodoPath = options.qodoPath || 'qodo';
+    this.toolParser = new QodoToolParser();
   }
 
   async createSession(metadata?: Record<string, any>): Promise<string> {
@@ -62,7 +65,21 @@ export class QodoCommandBridge {
         qodoProcess.stdout.on('data', (chunk) => {
           const text = chunk.toString();
 
-          onProgress(text);
+          const messages = this.toolParser.parseChunk(text);
+
+          for (const message of messages) {
+            if (
+              message.type === 'tool_call' &&
+              message.content &&
+              typeof message.content === 'object'
+            ) {
+              const formatted = formatToolCall(message.content);
+              onProgress(formatted);
+            } else if (message.type === 'text' && message.content) {
+              onProgress(message.content as string);
+            }
+          }
+
           hasResponded = true;
         });
 
