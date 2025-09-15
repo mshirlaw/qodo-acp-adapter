@@ -19,26 +19,29 @@ This adapter implements the Agent Client Protocol to bridge between:
 ### Key Components
 
 1. **`index.ts`** - Entry point that sets up the server and handles process lifecycle
-2. **`acp-server.ts`** - Implements the ACP protocol, handling JSON-RPC messages
-3. **`qodo-bridge.ts`** - Manages Qodo Command subprocess and translates between ACP and CLI
-4. **`types.ts`** - TypeScript type definitions for ACP protocol
+2. **`acp-agent.ts`** - Implements the ACP protocol, handling JSON-RPC messages with UUID v7 session IDs
+3. **`qodo-bridge.ts`** - Manages Qodo Command subprocess with hardcoded permissions (`--permissions=rw --tools=filesystem`)
+4. **`types.ts`** - TypeScript type definitions for ACP protocol and session management
+5. **`utils.ts`** - Utility functions for stream conversion between Node.js and Web streams
 
 ## How It Works
 
-1. **Initialization**: When Zed starts the adapter, it sends an `initialize` request
-2. **Session Creation**: Each conversation creates a new session via `session/new`
-3. **Message Handling**: User messages are sent via `session/prompt`
-4. **Qodo Integration**: The bridge runs `qodo --ci -y <prompt>` for each message in non-interactive mode
-5. **Progress Updates**: Qodo's responses are streamed back as `session/update` notifications
+1. **Initialization**: When Zed starts the adapter, it sends an `initialize` request which returns agent capabilities
+2. **Session Creation**: Each conversation creates a new session via `session/new` using UUID v7 for unique IDs
+3. **Message Handling**: User messages are sent via `session/prompt` with text content extraction
+4. **Qodo Integration**: The bridge spawns `qodo --ci --permissions=rw --tools=filesystem <prompt>` for each message
+5. **Progress Updates**: Qodo's stdout is streamed back as `session/update` notifications in real-time
+6. **Error Handling**: Both stdout and stderr are captured, with debug logging available via `ACP_DEBUG`
 
 ### Protocol Translation
 
 The adapter handles the differences between Zed's ACP implementation and the standard protocol:
 
-- `initialize` → Standard initialization
-- `session/new` → Creates a new conversation session (returns `sessionId`)
+- `initialize` → Standard initialization with agent capabilities (supports images and embedded context)
+- `session/new` → Creates a new conversation session using UUID v7 (returns `sessionId`)
 - `session/prompt` → Sends a message and waits for completion (returns `stopReason`)
 - `session/update` → Progress notifications during message processing
+- `cancel` → Attempts to stop ongoing generation for a session
 
 ## Installation
 
@@ -79,9 +82,20 @@ Add to your Zed `settings.json`:
 
 Due to the fundamental mismatch between Qodo Command's terminal-based design and ACP's programmatic requirements:
 
+### Permissions Model Limitations
+
+**Critical Issue**: It is currently difficult to implement a valid permissions model due to limitations in the Qodo command line tool. Each new request from the user is sent to Qodo as a completely new request with no history or context. The CLI tool does not provide:
+
+- A way to maintain session state between invocations
+- Mechanisms to request permissions from the client during execution
+- Support for interactive permission prompts when running in CI mode
+- Ability to remember previously granted permissions within a conversation
+
+This means that permissions must be pre-configured (e.g., `--permissions=rw --tools=filesystem`) and cannot be dynamically requested or managed during the conversation flow.
+
 ### Functional Limitations
 
-1. **No Conversation Context**: Each message runs as an independent `qodo --ci` command, so there's no memory between messages. Qodo won't remember previous questions or answers within a session.
+1. **No Conversation Context**: Each message runs as an independent `qodo --ci` command, so there's no memory between messages. Qodo won't remember previous questions or answers within a session. Every user request is treated as a new, isolated interaction.
 
 2. **Terminal UI Issues**: Qodo Command uses Ink (React for terminals) which requires raw mode input. This doesn't work when running as a subprocess with piped stdio, forcing us to use CI mode which has limited functionality.
 
@@ -114,6 +128,22 @@ npm run typecheck
 
 # Build for production
 npm run build
+
+# Run tests
+npm run test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Linting and formatting
+npm run lint
+npm run lint:fix
+npm run format
+npm run format:check
+
+# Spell checking
+npm run spell
+npm run spell:fix
 ```
 
 ## Debugging
@@ -191,6 +221,7 @@ If you're from the Qodo team or want to request these features:
 - [Agent Client Protocol Specification](https://agentclientprotocol.com)
 - [Claude Code ACP Adapter](https://github.com/zed-industries/claude-code-acp) - Reference implementation
 - [Qodo Command Documentation](https://docs.qodo.ai/qodo-documentation/qodo-command)
+- [UUID v7 Specification](https://datatracker.ietf.org/doc/html/draft-ietf-uuidrev-rfc4122bis) - Used for session ID generation
 
 ## License
 
